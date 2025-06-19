@@ -11,7 +11,10 @@ class Series:public Book,public Periodicals
 public:
 
 	// за фабриката
-	Series(std::istream& is) : LibraryUnit(is), Book(is), Periodicals(is) {};
+	Series(std::istream& is) : LibraryUnit(is){
+		Book::deserializeBookUnit(is);
+		Periodicals::deserializePeriodicalsUnit(is);
+	};
 
 	// това е един от минусите, параметризираните ctor стават много дълги 
 	// тъй като трябва да получант информация, с която да инициализират всичките си същности - в случая Book, Periodicals
@@ -69,8 +72,12 @@ public:
 	inline virtual size_t getCount()const override { return counter; }
 	inline static size_t getSeriesCount() { return counter; };
 	virtual void serialize(std::ostream& os)const override;
+
 	inline virtual Type getType()const override { return Type::SERIES; };
+
+
 	virtual void deserialize(std::istream& is)override;
+
 	inline virtual std::vector<std::string> getIdentifiers()const override {
 		return { Book::getISBN(), Periodicals::getISSN() };
 	}

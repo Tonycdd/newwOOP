@@ -78,7 +78,7 @@ std::string rateToString(Rate rate) {
 }
 
 
-int LibraryUnit::uniqueNumber = 0; // инициализираме началото на номерата
+//int LibraryUnit::uniqueNumber = 0; // инициализираме началото на номерата
 
 LibraryUnit::LibraryUnit() : title("No_title"), publishers("No_publishers"),
     description("No_description"),date(),rate(Rate::VeryPoor),genre(Genre::Other),totalCopies(1),takenCopies(0), id(-1)
@@ -110,7 +110,7 @@ LibraryUnit::LibraryUnit(const std::string& title,
         throw std::invalid_argument("Rate cannot be bigger than 5!");
     }
 
-    this->id = LibraryUnit::generateNextNumber();
+    this->id = IDGenerator::getNextId();
     this->rate = rate;
     this->genre = genre;
     this->title = title; // тук вече викаме operator= за стринг
@@ -126,7 +126,7 @@ LibraryUnit::LibraryUnit(const LibraryUnit& other)
     genre(other.genre),rate(other.rate),totalCopies(other.totalCopies), takenCopies(other.takenCopies)
 {
     // other е валиден обект, ние тепърва конструираме нашият
-    id = LibraryUnit::generateNextNumber();
+    this->id = IDGenerator::getNextId();
 }
 
 LibraryUnit& LibraryUnit::operator=(const LibraryUnit& other)
@@ -451,7 +451,7 @@ bool LibraryUnit::change() {
 }
 
 bool LibraryUnit::equals(const LibraryUnit& other)const {
-    return uniqueNumber == other.uniqueNumber;
+    return id == other.id;
 }
 
 bool LibraryUnit::incrementTakenCopies()
@@ -460,6 +460,7 @@ bool LibraryUnit::incrementTakenCopies()
         return false;
     }
     ++takenCopies;
+    return true;
  
 }
 
@@ -470,6 +471,7 @@ bool LibraryUnit::decrementTakenCopies()
         return false;
     }
         --takenCopies;
+        return true;
 }
 
 void LibraryUnit::serializeBaseUnit(std::ostream& os) const
@@ -616,27 +618,28 @@ void LibraryUnit::deserializeBaseUnit(std::istream& is)
         throw std::ios_base::failure("Error reading date!");
     }
     // rate
-    uint8_t r;
-    is.read(reinterpret_cast<char*>(&r), sizeof(r));
+    //uint8_t r;
+    is.read(reinterpret_cast<char*>(&tempRate), sizeof(tempRate));
     if (is.fail()) {
         throw std::ios_base::failure("Error reading rate!");
     }
     // ok е статичният каст, тъй като са съвместими и знаем точно какво стои зад него
-    tempRate = static_cast<Rate>(r);
+  //  tempRate = static_cast<Rate>(r);
 
     // genre
-    uint16_t g;
-    is.read(reinterpret_cast<char*>(&g), sizeof(g));
+   // uint16_t g;
+    is.read(reinterpret_cast<char*>(&tempGenre), sizeof(tempGenre));
     if (is.fail()) {
         throw std::ios_base::failure("Error reading genre!");
     }
-    tempGenre = static_cast<Genre>(g);
+   // tempGenre = static_cast<Genre>(g);
     
     // id
     is.read(reinterpret_cast<char*>(&tempId), sizeof(tempId));
     if (is.fail()) {
         throw std::ios_base::failure("Error reading id!");
     }
+    IDGenerator::setLastId(tempId);
 
     // availability
     is.read(reinterpret_cast<char*>(&tempTotal), sizeof(tempTotal));
@@ -659,11 +662,12 @@ void LibraryUnit::deserializeBaseUnit(std::istream& is)
         throw std::invalid_argument("Date is not valid!");
     }
 
-    if (r > static_cast<uint8_t>(Rate::Excellent)) {
+    if (static_cast<uint8_t>(tempRate) > static_cast<uint8_t>(Rate::Excellent)) {
         throw std::invalid_argument("Invalid rate value!");
     }
 
-    if (g > static_cast<uint16_t>(Genre::Other)) {
+    if (static_cast<uint16_t>(tempGenre) > static_cast<uint16_t>(Genre::Other)) {
+
         throw std::invalid_argument("Invalid genre value!");
     }
 

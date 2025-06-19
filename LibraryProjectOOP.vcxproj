@@ -132,6 +132,7 @@
     <ClCompile Include="Book.cpp" />
     <ClCompile Include="Date.cpp" />
     <ClCompile Include="Factory.cpp" />
+    <ClCompile Include="IDGenerator.cpp" />
     <ClCompile Include="LibraryPerson.cpp" />
     <ClCompile Include="LibrarySystem.cpp" />
     <ClCompile Include="LibraryUnit.cpp" />
@@ -147,6 +148,7 @@
     <ClInclude Include="Book.h" />
     <ClInclude Include="Date.h" />
     <ClInclude Include="Factory.h" />
+    <ClInclude Include="IDGenerator.h" />
     <ClInclude Include="LibraryPerson.h" />
     <ClInclude Include="LibrarySystem.h" />
     <ClInclude Include="LibraryUnit.h" />

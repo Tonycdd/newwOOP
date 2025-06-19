@@ -457,9 +457,9 @@ void Periodicals::deserializePeriodicalsUnit(std::istream& is)
     if (!is.good()) {
         throw std::ios_base::failure("Error while reading issueNumber!");
     }
-    if (tempArticles.empty()) {
-        throw std::invalid_argument("Article cannot be empty!");
-    }
+   // if (tempArticles.empty()) {
+  //      throw std::invalid_argument("Article cannot be empty!");
+   // }
 
     // иначе са били успешно прочетени
     articles = std::move(tempArticles);

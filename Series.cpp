@@ -14,7 +14,7 @@ void Series::serialize(std::ostream& os) const
 	if (os.fail()) {
 		throw std::ios_base::failure("Error writing base unit!");
 	}
-	Book::serializeBaseUnit(os);
+	Book::serializeBookUnit(os);
 	if (os.fail()) {
 		throw std::ios_base::failure("Error writing book unit!");
 	}
@@ -31,7 +31,12 @@ void Series::deserialize(std::istream& is)
 	if (!is.good()) {
 		throw std::invalid_argument("Error with input stream before deserializing Series!");
 	}
-	Series s;
+    Type hasToBeRead;
+    is.read(reinterpret_cast<char*>(&hasToBeRead), sizeof(hasToBeRead));
+    if (!is) {
+        throw std::ios_base::failure("Error with file!");
+    }
+    Series s;
 
 	s.deserializeBaseUnit(is);
 	if (!is.good()) {

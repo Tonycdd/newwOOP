@@ -2,6 +2,8 @@
 #include <string>
 #include "Date.h"
 #include <vector>
+#include "IDGenerator.h"
+
 // отделен клас, представящ датите, имам работа за подобрение да работи с 
 // високосни години, там има и ограничение за годините - 1900 не приемаме по-стари от тази година
 // идеята на този клас е да представя общ интерфейс за всички единици в нашата библиотека
@@ -75,9 +77,9 @@ public:
 	// при унищожение на наследници, когато работим с указатели към базовия клас
 
 	// не е обвързан пряко с представител на класа затова е static
-	static int generateNextNumber() {
-		return ++LibraryUnit::uniqueNumber;
-	}
+	//static int generateNextNumber() {
+	//	return ++LibraryUnit::uniqueNumber;
+	//}
 
 	// сетъри
 	bool setNewTitle(const std::string& newTitle);
@@ -94,7 +96,7 @@ public:
 	inline const std::string& getDescription()const { return description; }; 
 	inline Date getDate()const { return date; };// копие - не нарушава капуслация, не е тежък обект
 	inline Rate getRate()const { return rate; };// копие, не нарушава капсулацията
-	inline static int getUniqueNumber() { return LibraryUnit::uniqueNumber; }; // може и без този гетър, тъй като е статик
+	inline  int getUniqueNumber() { return id; }; // може и без този гетър, тъй като е статик
 	inline Genre getGenre()const { return genre; };// връщаме копие 
 	inline int getId()const { return id; };
 	inline bool isAvailable()const { return takenCopies < totalCopies; };
@@ -150,7 +152,7 @@ protected:
 	Date date;// дата на издаване
 	Rate rate;// рейтинг - стойност до 5, тоест може да я поберем в един 8 битов беззнаков интинджър
 	Genre genre; // стига ни 2 байтов беззнаков инт за ефикасно представяне
-	static int uniqueNumber;// за генериране на уникални номера
+	//static int uniqueNumber;// за генериране на уникални номера
 	unsigned int totalCopies;
 	unsigned int takenCopies;
 	int id; // уникалният номер в библиотеката

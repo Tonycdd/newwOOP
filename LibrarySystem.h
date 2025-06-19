@@ -15,11 +15,11 @@ struct UniqueIDAndFilePositions
 	unsigned int uniqueNumber;
 	size_t pos;
 	bool isFree;
-
+	Type type;
 	UniqueIDAndFilePositions() = default;
 	// не правим никакви валидации тук, тъй като това не е работа за момента
 	// това ще стане чак когато се опитаме да създадем обекта, той ще се погрижи за тази работа
-	UniqueIDAndFilePositions(unsigned int q, size_t pos, bool is) : uniqueNumber(q), pos(pos), isFree(is) {};
+	UniqueIDAndFilePositions(int q, size_t pos, bool is,const Type& tp) : uniqueNumber(q), pos(pos), isFree(is),type(tp){};
 
 };
 
@@ -29,11 +29,13 @@ struct MetaInfoAboutUsers {
 	std::string username;
 	std::string password;
 	size_t pos;
+	TypeOfReader type;
 
 	MetaInfoAboutUsers() = default;
 	// не правим никакви валидации тук, тъй като това не е работа за момента
 	// това ще стане чак когато се опитаме да създадем обекта, той ще се погрижи за тази работа
-	MetaInfoAboutUsers(const std::string& user, const std::string& pass, size_t pos) : username(user), password(pass), pos(pos) {};
+	MetaInfoAboutUsers(const std::string& user, const std::string& pass, size_t pos,const TypeOfReader& tp) : 
+		username(user), password(pass), pos(pos),type(tp) {};
 };
 
 class LibrarySystem
@@ -63,12 +65,12 @@ public:
 	//  методи за извеждане на информация за книгите
 	// използват  printBase part само, а вече допълнитените данни, само ако се изполва list info с  ISNN or ISBN
 
-	void booksAll(std::ostream& out = std::cout) const;
-	void periodicalsAll(std::ostream& out = std::cout) const;
-	void seriesAll(std::ostream& out = std::cout)const;
-	void all(std::ostream& out = std::cout)const;
+	void booksAll(std::ostream& out = std::cout) ;
+	void periodicalsAll(std::ostream& out = std::cout) ;
+	void seriesAll(std::ostream& out = std::cout);
+	void all(std::ostream& out = std::cout);
 	// тук вече използваме display - спрямо конкретния тип
-	void listInfo(const std::string& ISNN_OR_ISBN) const;
+	void listInfo(const std::string& ISNN_OR_ISBN) ;
 
 	// методи за търесете
 	// търсене на издания
@@ -98,7 +100,7 @@ public:
 
 	// за потребители
 	// не го добавяме още в системата, а само информация за него, чак при логин ще го добавим целия
-	void addUser(const std::string& name, const std::string& password, bool isAdmin = false); 
+	void addUser(bool isAdmin = false); 
 	void removeUser(const std::string& name);
 	bool changeUser(const std::string&,const std::string&, const std::string&);
 
@@ -108,6 +110,7 @@ public:
 	bool take(const std::string& user, unsigned int id);
 	bool returnUnit(unsigned int id);
 
+	void print();
 private:
 	// това са полиморфични контейнери, които позволяват да работим вече със самите обекти
 	// тоест това са вече заредените обекти 

@@ -231,7 +231,7 @@ Book* Book::createInteractively()
     }
     std::cin.ignore(); // clear newline
 
-    std::cout << "Enter rating (1–6): ";
+    std::cout << "Enter rating (1 to 6): ";
     if (!(std::cin >> rateValue) || rateValue < 1 || rateValue > 6) {
         std::cin.clear();
         std::cin.ignore(1000, '\n');
@@ -240,7 +240,23 @@ Book* Book::createInteractively()
     }
     std::cin.ignore();
 
-    std::cout << "Enter genre as number (e.g., 0: Fiction, 1: Nonfiction, etc.): ";
+    std::cout << "Enter genre as number (e.g., 0: Fiction, 1: Nonfiction, etc.):\n ";
+    std::cout << " Fiction : 0\n";
+    std::cout << " NonFiction : 1\n";
+    std::cout << " SciFi : 2\n";
+    std::cout << " Fantasy : 3\n";
+    std::cout << " Mystery : 4\n";
+    std::cout << " Thriller : 5\n";
+    std::cout << " Romance : 6\n";
+    std::cout << " Historical : 7\n";
+    std::cout << " Academic : 8\n";
+    std::cout << " Textbook : 9\n";
+    std::cout << " News : 10\n";
+    std::cout << " Science : 11\n";
+    std::cout << " Sports : 12\n";
+    std::cout << " Technology : 13\n";
+    std::cout << " Other : 14\n";
+
     if (!(std::cin >> genreValue)) {
         std::cin.clear();
         std::cin.ignore(1000, '\n');
@@ -426,7 +442,7 @@ void Book::deserializeBookUnit(std::istream& is)
     std::string tempAuthor;
     std::vector<std::string> tempKeyWords;
     std::string tempISBN;
-
+    std::string tempISSN;
 
     // author 
     is.read(reinterpret_cast<char*>(&size), sizeof(size));
@@ -450,18 +466,18 @@ void Book::deserializeBookUnit(std::istream& is)
     
     for (size_t i = 0; i < keyWordsSize; i++)
     {
-        is.read(reinterpret_cast<char*>(&size), size);
+        is.read(reinterpret_cast<char*>(&size), sizeof(size));
         if (is.fail()) {
             throw std::ios_base::failure("Error reading current keyWords size!");
         }
-        std::string keyWord(size, '\0');
-        if (size > 0) {
+        std::string keyWord;
+        
             is.read(&keyWord[0], size);
             if (is.fail()) {
                 throw std::ios_base::failure("Error reading current keyWord!");
             }
-        }
-        tempKeyWords.push_back(std::move(keyWord));
+
+        tempKeyWords.push_back(keyWord);
     }
     
     //ISBBN
@@ -476,7 +492,7 @@ void Book::deserializeBookUnit(std::istream& is)
             throw std::ios_base::failure("Error reading ISBN!");
         }
     }
-    
+
     // Валидация - някаква
     if (tempAuthor.empty()) {
         throw std::invalid_argument("Author cannot be empty.");

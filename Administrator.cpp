@@ -1,5 +1,4 @@
 ﻿#include "Administrator.h"
-#include <regex>// отново да питаме дали е ок
 
 Administrator::Administrator(const std::string& user,
     const std::string& pass,
@@ -137,6 +136,12 @@ void Administrator::deserialize(std::istream& is)
 
 void Administrator::serialize(std::ostream& out) const
 {
+    TypeOfReader t = getType(); // READER
+    out.write(reinterpret_cast<const char*>(&t), sizeof(t));
+    if (!out.good()) {
+        throw std::ios_base::failure("Error with writing type {READER}!");
+    }
+
     LibraryPerson::serializeBase(out);
     if (!out.good()) {
         throw std::ios_base::failure("Error with writing PersonUnit!");
