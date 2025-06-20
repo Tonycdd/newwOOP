@@ -20,7 +20,6 @@ struct UniqueIDAndFilePositions
 	// не правим никакви валидации тук, тъй като това не е работа за момента
 	// това ще стане чак когато се опитаме да създадем обекта, той ще се погрижи за тази работа
 	UniqueIDAndFilePositions(int q, size_t pos, bool is,const Type& tp) : uniqueNumber(q), pos(pos), isFree(is),type(tp){};
-
 };
 
 // структура, която пази информация за името,паролата на даден юзър, както и неговата позиция във двоичния файл
@@ -97,6 +96,7 @@ public:
 	void addUnit(const Type& type);
 	void removeUnit(unsigned int id);
 	bool changeUnit(unsigned int id);
+	bool rewriteUnitById(int id); // за change
 
 	// за потребители
 	// не го добавяме още в системата, а само информация за него, чак при логин ще го добавим целия
@@ -110,7 +110,7 @@ public:
 	bool take(const std::string& user, unsigned int id);
 	bool returnUnit(unsigned int id);
 
-	void print();
+	void print()const;
 private:
 	// това са полиморфични контейнери, които позволяват да работим вече със самите обекти
 	// тоест това са вече заредените обекти 

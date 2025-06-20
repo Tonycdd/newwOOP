@@ -1,4 +1,5 @@
 #include "Series.h"
+#include <utility> // std::swap
 
 size_t Series::counter = 0;
 
@@ -50,7 +51,7 @@ void Series::deserialize(std::istream& is)
 	if (!is.good()) {
 		throw std::ios_base::failure("Error with deserializing Periodicals!");
 	}
-	*this = std::move(s);
+    *this = std::move(s);
 }
 
 Series* Series::createInteractively() {

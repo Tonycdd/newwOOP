@@ -9,9 +9,8 @@ public:
 	// голяма 6-тица
 	
 	explicit Book(std::istream& is)
-		: LibraryUnit(is)
 	{
-		deserializeBookUnit(is);
+		deserialize(is);
 	}
 
 	Book(const std::string& title,
@@ -44,6 +43,7 @@ public:
 	// имплементираме чисто-виртуалните методи
 	// извикваме копи ctor 
 	// всеки от наследниците знае какъв е 
+	inline virtual const std::string& getISSNorISBN()const override { return ISBN; };
 	inline virtual LibraryUnit* clone() const override { return new Book(*this); };
 	inline virtual void display(std::ostream& os = std::cout)const override;
 	inline virtual size_t getCount()const override { return counter; };
@@ -67,9 +67,13 @@ public:
 	static Book* createInteractively();
 
 	virtual bool change()override;
-protected:
+	friend class LibraryFactory;
 
+	
+
+protected:
 	Book();
+	
 	bool changeBookPart();
 protected:
 	// сериализира само неговите полета и десериaлизацияя

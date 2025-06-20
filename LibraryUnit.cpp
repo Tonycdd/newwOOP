@@ -81,7 +81,7 @@ std::string rateToString(Rate rate) {
 //int LibraryUnit::uniqueNumber = 0; // инициализираме началото на номерата
 
 LibraryUnit::LibraryUnit() : title("No_title"), publishers("No_publishers"),
-    description("No_description"),date(),rate(Rate::VeryPoor),genre(Genre::Other),totalCopies(1),takenCopies(0), id(-1)
+    description("No_description"),date(),rate(Rate::VeryPoor),genre(Genre::Other),totalCopies(1),takenCopies(0), id(0)
 {
     // някакви невалидни стойности, не го ползваме безразборно
 }
@@ -142,8 +142,8 @@ LibraryUnit& LibraryUnit::operator=(const LibraryUnit& other)
             Date tempDate = other.date;
             Genre tempGenre = other.genre;
             Rate tempRate = other.rate;
-            bool tempTotal = other.totalCopies;
-            bool tempTaken = other.takenCopies;
+            unsigned int tempTotal = other.totalCopies;
+            unsigned int tempTaken = other.takenCopies;
 
             // Само ако всички операции са успешни, променяме членовете
             title = std::move(tempTitle);
@@ -182,6 +182,7 @@ LibraryUnit& LibraryUnit::operator=(LibraryUnit&& other) noexcept
     if (this != &other) {
         // не унищожаваме нищо, може по някаква причина външният свят да удължи живота на other
         // естествено, той ще си извика деструктор за ресурсите, така че сме ок
+
         std::swap(title, other.title);
         std::swap(publishers, other.publishers);
         std::swap(description, other.description);
@@ -190,9 +191,9 @@ LibraryUnit& LibraryUnit::operator=(LibraryUnit&& other) noexcept
         std::swap(genre, other.genre);
         std::swap(totalCopies, other.totalCopies);
         std::swap(takenCopies, other.takenCopies);
-
-        other.id = -1;
+        std::swap(id, other.id);
     }
+
     return *this;
 }
 
@@ -313,17 +314,16 @@ bool LibraryUnit::change() {
     while (true) {
         std::cout << "Input new title or 'cancel' : ";
         std::getline(std::cin, input);
-        if (input == "cancel") return true;    // прекъсваме с вече записаните промени
+        if (input == "cancel") break;    // прекъсваме с вече записаните промени
         
         try
         {
             if (!setNewTitle(input)) {
                 std::cerr << "Invalid title!";
-                break;
+                continue;
             }
             std::cout << "Successfully changed to new title!" << "\n";
             break;
-
         }
         catch (...)
         {
@@ -336,12 +336,12 @@ bool LibraryUnit::change() {
     while (true) {
         std::cout << "Input ne publishiers or 'cancel' : ";
         std::getline(std::cin, input);
-        if (input == "cancel") return true;
+        if (input == "cancel") break;
         try
         {
             if (!setNewPublishers(input)) {
                 std::cerr << "Cannot change with input! (Invalid one!)" << "\n";
-                break;
+                continue;
             }
             std::cout << "Successfully changed to: " << input << "\n";
             break;
@@ -357,12 +357,12 @@ bool LibraryUnit::change() {
     while (true) {
         std::cout << "Input new description or 'cancel' : ";
         std::getline(std::cin, input);
-        if (input == "cancel") return true;
+        if (input == "cancel") break;
         try
         {
             if (!setNewDescription(input)) {
                 std::cerr << "Cannot change with input! (Invalid one!)" << "\n";
-                break;
+                continue;
             }
             std::cout << "Successfully changed to: " << input << "\n";
             break;
@@ -379,16 +379,18 @@ bool LibraryUnit::change() {
     while (true) {
         int x, y, z;
         std::cout << "Enter 'cancel' or 'continue' to change date: \n";
-        if (input == "cancel") return true;
+        std::getline(std::cin, input);
+        if (input == "cancel") break;
         else if (input == "continue") {
             std::cout << "Input new date (format: YYYY-MM-DD) or 'cancel': ";
             std::cin >> x >> y >> z;
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); 
             try {
                 newDate = Date(x,y,z); 
                 if (!setNewDate(newDate)) 
                 {
                     std::cerr << "Invalid date!" << "\n";
-                    break;
+                    continue;
                 }
                 std::cout << "Changed succesfully with new date!" << "\n";
                 break;
@@ -405,14 +407,14 @@ bool LibraryUnit::change() {
     while (true) {
         std::cout << "Enter new rate (1-6) or 'cancel': ";
         std::getline(std::cin, input);
-        if (input == "cancel") return true;
+        if (input == "cancel") break;
         try {
             int r = std::stoi(input);
             if (r < 1 || r > 6) throw std::out_of_range("rating");
             if (!setNewRate((Rate)r)) 
             {
                 std::cerr << "Invalid rate!" << "\n";
-                break;
+                continue;
             }
             std::cout << "Successfully changed to new Rate!" << "\n";
             break;
@@ -427,14 +429,14 @@ bool LibraryUnit::change() {
     while (true) {
         std::cout << "Input new genre or'cancel' : ";
         std::getline(std::cin, input);
-        if (input == "cancel") return true;
+        if (input == "cancel") break;
 
         try {
             newGenre = parseGenreFromString(input);
             if (!setNewGenre(newGenre)) 
             {
                 std::cerr << "Couldnt change genre -> invalid input!";
-                break;
+                continue;
             };
             std::cout << "Succesfully changed to new Genre!" << "\n";
             break;
@@ -523,6 +525,7 @@ void LibraryUnit::serializeBaseUnit(std::ostream& os) const
     if (!os) throw std::ios_base::failure("Error with writing genre");
 
     os.write(reinterpret_cast<const char*>(&id), sizeof(id));
+    std::cout << id << "/n";
     if (!os) throw std::ios_base::failure("Error with writing id");
 
     os.write(reinterpret_cast<const char*>(&totalCopies), sizeof(totalCopies));
@@ -639,8 +642,11 @@ void LibraryUnit::deserializeBaseUnit(std::istream& is)
     if (is.fail()) {
         throw std::ios_base::failure("Error reading id!");
     }
-    IDGenerator::setLastId(tempId);
-
+    std::cout << "Base deserialize\n";
+    std::cout << tempId << "\n";
+    if (tempId > IDGenerator::getLastId()) {
+        IDGenerator::setLastId(tempId);
+    }
     // availability
     is.read(reinterpret_cast<char*>(&tempTotal), sizeof(tempTotal));
     if (is.fail()) {
@@ -682,7 +688,8 @@ void LibraryUnit::deserializeBaseUnit(std::istream& is)
 
     rate = tempRate;
     genre = tempGenre;
-    id = tempId;
+    this->id = tempId;
+   
     totalCopies = tempTotal;
     takenCopies = tempTaken;
 }

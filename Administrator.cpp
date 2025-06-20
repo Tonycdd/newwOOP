@@ -121,6 +121,11 @@ void Administrator::deserialize(std::istream& is)
     if (!is.good()) {
         throw std::invalid_argument("Invalid stream before reading from Administrator Unit!");
    }
+    TypeOfReader t;
+    is.read(reinterpret_cast<char*>(&t), sizeof(t));
+    if (!is) {
+        throw std::invalid_argument("Invalid type!");
+    }
     Administrator a;
     a.deserializeBase(is);
     if (!is.good()) {
@@ -136,7 +141,7 @@ void Administrator::deserialize(std::istream& is)
 
 void Administrator::serialize(std::ostream& out) const
 {
-    TypeOfReader t = getType(); // READER
+    TypeOfReader t = getType(); 
     out.write(reinterpret_cast<const char*>(&t), sizeof(t));
     if (!out.good()) {
         throw std::ios_base::failure("Error with writing type {READER}!");
@@ -201,6 +206,13 @@ Administrator* Administrator::createInteractively()
     std::cin.ignore(); 
 
     return new Administrator(username, password, d1, m1, y1, d2, m2, y2, email);
+}
+
+// той не взима книги и не връща книги, ако иска, трябва да се регисрира като reader
+std::vector<int> Administrator::getTakenIds() const
+{
+
+    return std::vector<int>();
 }
 
 Administrator::Administrator() :  LibraryPerson(), email("No_email")

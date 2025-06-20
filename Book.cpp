@@ -165,7 +165,11 @@ void Book::deserialize(std::istream& is)
     // *this = std::move(temp);
     
     // за да осигурим strong exception
-
+    Type t;
+    is.read(reinterpret_cast<char*>(&t), sizeof(t));
+    if (!is) {
+        throw std::ios_base::failure("Error reading type in Book::deserialize!");
+    }
     Book temp;
     
     temp.deserializeBaseUnit(is);
@@ -179,7 +183,6 @@ void Book::deserialize(std::istream& is)
     }
 
     *this = std::move(temp);
-
 }
 
 
@@ -307,7 +310,7 @@ bool Book::changeBookPart()
     while (true) {
         std::cout << "Input new author or 'cancel': ";
         std::getline(std::cin, input);
-        if (input == "cancel") return true;
+        if (input == "cancel") break;
 
         try {
             if (!setNewAuthor(input)) {
@@ -327,7 +330,7 @@ bool Book::changeBookPart()
     while (true) {
         std::cout << "Input number of new keywords or 'cancel': ";
         std::getline(std::cin, input);
-        if (input == "cancel") return true;
+        if (input == "cancel") break;
 
         try {
             int num = std::stoi(input);
@@ -367,7 +370,7 @@ bool Book::changeBookPart()
     while (true) {
         std::cout << "Input new ISBN or 'cancel': ";
         std::getline(std::cin, input);
-        if (input == "cancel") return true;
+        if (input == "cancel") break;
 
         try {
             if (!setNewISBN(input)) {

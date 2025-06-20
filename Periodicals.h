@@ -10,9 +10,9 @@ public:
 	// отоново голяма 6-
 	// 
 	// за фабриката
-	Periodicals(std::istream& is) : LibraryUnit(is)
+	Periodicals(std::istream& is)
 	{
-		deserializePeriodicalsUnit(is);
+		deserialize(is);
 	}
 	Periodicals(const std::string& title,
 		const std::string& publishers,
@@ -29,6 +29,7 @@ public:
 	Periodicals& operator=(Periodicals&& other)noexcept;
 
 	virtual ~Periodicals() noexcept override;
+	inline virtual const std::string& getISSNorISBN()const override { return ISSN; };
 	inline virtual LibraryUnit* clone() const override { return new Periodicals(*this); };
 	virtual void display(std::ostream& out = std::cout)const override;
 	inline virtual size_t getCount()const override { return counter; };
@@ -73,7 +74,7 @@ public:
 	static Periodicals* createInteractively();
 
 	virtual bool change()override;
-	
+	friend class LibraryFactory;
 protected:
 	Periodicals();
 	bool changePeriodicalsPart();

@@ -58,12 +58,10 @@ enum Genre : uint16_t
 class LibraryUnit
 {
 public:
-	
 	LibraryUnit(const std::string& title, const std::string& publishers, const std::string& description,
 		int day, int month,int year,const Rate& rate, const Genre& genre);
 	LibraryUnit(const LibraryUnit& other);
 
-	// чисто виртуален оператор=, задължаващ наследниците да го имплементират
 	LibraryUnit& operator=(const LibraryUnit& other);
 	
 	virtual LibraryUnit* clone() const = 0; // чисто виртуален метод за копиране, 
@@ -75,12 +73,7 @@ public:
 
 	virtual ~LibraryUnit() noexcept = default; //  виртуален деструктор за правилно извикване 
 	// при унищожение на наследници, когато работим с указатели към базовия клас
-
-	// не е обвързан пряко с представител на класа затова е static
-	//static int generateNextNumber() {
-	//	return ++LibraryUnit::uniqueNumber;
-	//}
-
+	
 	// сетъри
 	bool setNewTitle(const std::string& newTitle);
 	bool setNewPublishers(const std::string& newPub);
@@ -127,6 +120,7 @@ public:
 
 	// за change - диалогов вариант - е тази функция
 	virtual bool change();
+	virtual const std::string& getISSNorISBN() const = 0;
 
 protected:
 	

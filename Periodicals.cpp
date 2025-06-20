@@ -155,9 +155,14 @@ void Periodicals::deserialize(std::istream& is)
 {
 
     // аналогично както при Book
-    
+
     if (!is.good()) {
         throw std::invalid_argument("Error with input stream before deserializing Periodicals!");
+    }
+    Type t;
+    is.read(reinterpret_cast<char*>(&t), sizeof(t));
+    if (!is) {
+        throw std::invalid_argument("Error with type reading in deserialize::Periodicals!");
     }
     Periodicals temp;
     temp.deserializeBaseUnit(is);
@@ -301,7 +306,7 @@ bool Periodicals::changePeriodicalsPart()
     while (true) {
         std::cout << "Input new issue number or 'cancel': ";
         std::getline(std::cin, input);
-        if (input == "cancel") return true;
+        if (input == "cancel") break;
 
         try {
             unsigned int num = std::stoul(input);
@@ -321,7 +326,7 @@ bool Periodicals::changePeriodicalsPart()
     while (true) {
         std::cout << "Input new ISSN or 'cancel': ";
         std::getline(std::cin, input);
-        if (input == "cancel") return true;
+        if (input == "cancel") break;
 
         try
         {
@@ -342,7 +347,7 @@ bool Periodicals::changePeriodicalsPart()
     while (true) {
         std::cout << "Input number of articles or 'cancel': ";
         std::getline(std::cin, input);
-        if (input == "cancel") return true;
+        if (input == "cancel") break;
 
         try {
             int num = std::stoi(input);
@@ -398,7 +403,7 @@ bool Periodicals::changePeriodicalsPart()
 
             if (!setNewArticles(newArticles)) {
                 std::cerr << "Invalid articles list!\n";
-                break;
+                continue;
             }
             std::cout << "Successfully changed articles!\n";
             break;
@@ -502,7 +507,7 @@ void Periodicals::serializePeriodicalsUnit(std::ostream& os) const
 void Periodicals::printPeriodicals(std::ostream& os) const
 {
     os << "Issue number: " << issueNumber << "\n";
-    os << "ISSN" << ISSN << "\n";
+    os << "ISSN: " << ISSN << "\n";
     os << "Articles: ";
     for (size_t i = 0; i < articles.size(); i++)
     {

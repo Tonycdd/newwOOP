@@ -93,7 +93,12 @@ bool LibraryPerson::setPassword(const std::string& newPas)
 
     try
     {
-        password = newPas; // може да хвърли но е ок
+        if(!setPassword(newPas));
+        {
+            std::cerr << "Invalid password format!\n";
+            return false;
+        }
+        // може да хвърли но е ок
 
     }
     catch (...)
@@ -117,7 +122,13 @@ bool LibraryPerson::setNewUsername(const std::string& newUsername)
 
     try
     {
-        username = newUsername; // може да хвърли но е ок
+
+        if (!setNewUsername(newUsername));
+        {
+            std::cerr << "Invalid username format!\n";
+            return false;
+        }
+
 
     }
     catch (...)
@@ -329,8 +340,6 @@ void LibraryPerson::deserializeBase(std::istream& is)
     this->password = std::move(tempPassword);
     this->registerDate = tempRegisterDate;
     this->lastLoginDate = tempLastLoginDate;
-
-
 }
 
 std::ostream& operator<<(std::ostream& out, const LibraryPerson& person)

@@ -23,16 +23,22 @@ LibraryUnit* LibraryFactory::createUnitFromStream(std::istream& in,const Type& t
 {
     if (!in.good()) throw std::ios_base::failure("Bad stream for unit creation");
 
+    LibraryUnit* unit = nullptr;
     switch (type) {
     case Type::BOOK:
-        return new Book(in);
+        unit = new Book();        
+        break;
     case Type::PERIODICALS:
-        return new Periodicals(in);
+        unit = new Periodicals();
+        break;
     case Type::SERIES:
-        return new Series(in);
-    default:
-        throw std::runtime_error("Unknown LibraryUnit type!");
+        unit = new Series();
+        break;
     }
+    if (unit) {
+        unit->deserialize(in);       
+    }
+    return unit;
 }
 
 LibraryUnit* LibraryFactory::createUnitInteractively(const Type& type)

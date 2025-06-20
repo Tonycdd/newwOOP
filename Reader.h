@@ -16,7 +16,7 @@ struct LoanInfo {
 	
 	LoanInfo() = default;
 	LoanInfo(const LibraryUnit* unit, const Date& borrow, const Date& due,bool isReturned = false) :
-		unit(unit), borrowDate(borrow), returnDate(due), returned(false) {};
+		unit(unit), borrowDate(borrow), returnDate(due), returned(isReturned) {};
 
 	inline void changeReturned() {
 		returned = !returned; // обръща състоянието
@@ -64,13 +64,14 @@ public:
 	// аналогично правим голяма 6-тица
 	// 
 	//за фабриката
-	Reader(std::istream& is):LibraryPerson(is)
+	Reader(std::istream& is)
 	{
-		deserializeReaderUnit(is);
+		deserialize(is);
 	}
 
 	Reader(const std::string& name, const std::string& pass, int day1, int month1, int year1,
-		int day2, int month2, int year2, const std::vector<LibraryUnit*>& v = {});
+		int day2, int month2, int year2, const std::vector<LibraryUnit*>& v = {},
+		const std::vector<LoanInfo>& history = {});
 	Reader(const Reader& other);
 	Reader& operator=(const Reader& other);
 	Reader(Reader&& other)noexcept;
@@ -105,9 +106,9 @@ public:
 	// статичен метод за интерактивен режим за фабриката
 	static Reader* createInteractively();
 
+	virtual std::vector<int> getTakenIds()const override;
 protected:
 	Reader();
-
 protected:
 	// важно за наследници
 	// засега не са от полза

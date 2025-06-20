@@ -11,9 +11,8 @@ class Series:public Book,public Periodicals
 public:
 
 	// за фабриката
-	Series(std::istream& is) : LibraryUnit(is){
-		Book::deserializeBookUnit(is);
-		Periodicals::deserializePeriodicalsUnit(is);
+	Series(std::istream& is){
+		deserialize(is);
 	};
 
 	// това е един от минусите, параметризираните ctor стават много дълги 
@@ -43,14 +42,34 @@ public:
 		Series::counter++;
 	}; // винаги първо вирт базов клас се вика
 	
-	Series& operator=(const Series& other) = default; //  дефолтно поведение
+	Series& operator=(const Series& other) 
+	{
+		if (this != &other) {
+			LibraryUnit::operator=(std::move(other));
+			Book::operator=(std::move(other));
+			Periodicals::operator=(std::move(other));
+		}
+		return *this;
+	}; //  дефолтно поведение
 	
 	Series(Series&& other)noexcept : LibraryUnit(std::move(other)),
 		Book(std::move(other)), Periodicals(std::move(other)) 
 	{
 		Series::counter++;
 	}; // викаме винаги първо виртуалния базов клас
-	Series& operator=(Series&& other)noexcept = default; // дефолтно поведение
+	Series& operator=(Series&& other)noexcept 
+	{
+		if (this != &other) {
+			// Първо move-assign на LibraryUnit
+			LibraryUnit::operator=(std::move(other));
+			// После move-assign на Book
+			Book::operator=(std::move(other));
+			// После move-assign на Periodicals
+			Periodicals::operator=(std::move(other));
+
+		}
+		return *this;
+	}; // дефолтно поведение
 	
 	virtual ~Series() noexcept override {
 		if (Series::counter > 0) {
@@ -110,7 +129,11 @@ public:
 	static Series* createInteractively();
 
 	virtual bool change()override;
+	inline virtual const std::string& getISSNorISBN() const override {
+		return Book::getISBN();
+	}
 
+	friend class LibraryFactory;
 protected:
 	Series();
 protected:

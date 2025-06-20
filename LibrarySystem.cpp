@@ -30,37 +30,30 @@ LibrarySystem::LibrarySystem(const std::string& usersFile, const std::string& un
             file2.close();
             throw std::ios_base::failure("Error with opening fileUnits!");
         }   
-    bool emptyCase = false;
+    bool emptyCase = true;
     try
     {
         deserialize(file1,file2);
-        if (infoUnits.empty() ){
-            std::cerr << "There is no info about units loaded !\n";
-            emptyCase = true;
-        }
-        else if(units.empty())
-        {
-            std::cerr << "No units loaded into the system!\n";
-            emptyCase = true;
-        }
-        else if (infoUsers.empty()) {
-            std::cerr << "There is no info loaded about users!\n";
-            emptyCase = true;
-        }
-        else if (users.empty()) {
-            std::cerr << "No users loaded into the system!\n";
-            emptyCase = true;
-        }
-
-        
         if (emptyCase) {
-            // регистрираме по подразбиране един admin user
-            Date today = Date(); // днешна дата
-            Administrator* initialUser = new Administrator("admin", "i<3C++", today, today, "admin@email.bg");
-            currentPerson = initialUser; // важно!
-            users.push_back(initialUser);
+            std::cout << "Creating default administrator!\n";
+                // регистрираме по подразбиране един admin user
+                Date today = Date(); // днешна дата
+                Administrator* admin = new Administrator("admin", "i<3C++", today, today, "admin@email.bg");
+                currentPerson = admin; // важно!
+                std::cout << "Logged as: 'admin!'\n";
+                try
+                {
+                    users.push_back(admin);  
+
+                }
+                catch (...)
+                {
+                    delete admin;
+                    throw;
+                }  
         }
     }
+
     catch (...)
     {
         // тук ще ги затворим, ако нещо се счупи
@@ -150,80 +143,63 @@ bool LibrarySystem::login(const std::string& username, const std::string& passwo
             }
         }
     }
-
-    try {
-        // Open the file and load the user
-        std::ifstream file(fileUsers, std::ios::binary);
-        if (!file.is_open()) {
-            std::cerr << "Cannot open users file!\n";
-            return false;
-        }
+    else
+    {
+        try {
+            // Open the file and load the user
+            std::ifstream file(fileUsers, std::ios::binary);
+            if (!file.is_open()) {
+                std::cerr << "Cannot open users file!\n";
+                return false;
+            }
         
-        // Seek to the user's position in the file
-        file.seekg(filePos, std::ios::beg);
-        if (!file.good()) {
+            // Seek to the user's position in the file
+            file.seekg(filePos, std::ios::beg);
+            if (!file.good()) {
+                file.close();
+                std::cerr << "Error seeking to user position in file!\n";
+                return false;
+            }
+
+            // Read the user type
+            TypeOfReader type;
+            std::streampos posBeforeType = file.tellg(); // запазваме позицията
+            file.read(reinterpret_cast<char*>(&type), sizeof(type));
+            if (!file.good()) {
+                throw std::ios_base::failure("Error with file!");
+            }
+
+            // курсора обратно, за да може обектът сам да си прочете Type вътре
+            file.seekg(posBeforeType);
+            if (!file) {
+                throw std::ios_base::failure("Failed to seek back before reading unit!");
+            }
+            
+            // Create the user object (this will read all data including username/password)
+            LibraryPerson* newUser = LibraryFactory::createPersonFromStream(file, type);
+            if (!newUser) {
+                file.close();
+                std::cerr << "Error creating user object from file!\n";
+                return false;
+            }
+        
+            // Update the last login date
+            newUser->lastLoginDate = Date(); // Current date
+        
+            // Close the file and add user to the system
             file.close();
-            std::cerr << "Error seeking to user position in file!\n";
+            users.push_back(newUser);
+            currentPerson = newUser;
+        
+            // Display welcome message
+            std::cout << "Welcome, " << username << "!\n";
+        
+            return true;
+        }
+        catch (std::exception& e) {
+            std::cerr << "Error during login: " << e.what() << std::endl;
             return false;
         }
-
-        // Read the user type
-        TypeOfReader type;
-        file.read(reinterpret_cast<char*>(&type), sizeof(type));
-        if (!file.good()) {
-            file.close();
-            std::cerr << "Error reading user type from file!\n";
-            return false;
-        }
-
-        //// Skip username and password as we already have them
-        //size_t size;
-        //
-        //// Skip username length and username
-        //file.read(reinterpret_cast<char*>(&size), sizeof(size));
-        //if (!file.good()) {
-        //    file.close();
-        //    std::cerr << "Error reading username size from file!\n";
-        //    return false;
-        //}
-        //file.seekg(size, std::ios::cur); // Skip username content
-        //
-        //// Skip password length and password
-        //file.read(reinterpret_cast<char*>(&size), sizeof(size));
-        //if (!file.good()) {
-        //    file.close();
-        //    std::cerr << "Error reading password size from file!\n";
-        //    return false;
-        //}
-        //file.seekg(size, std::ios::cur); // Skip password content
-
-        //// Reset file position to beginning of the user record
-        //file.seekg(filePos, std::ios::beg);
-        
-        // Create the user object (this will read all data including username/password)
-        LibraryPerson* newUser = LibraryFactory::createPersonFromStream(file, type);
-        if (!newUser) {
-            file.close();
-            std::cerr << "Error creating user object from file!\n";
-            return false;
-        }
-        
-        // Update the last login date
-        newUser->lastLoginDate = Date(); // Current date
-        
-        // Close the file and add user to the system
-        file.close();
-        users.push_back(newUser);
-        currentPerson = newUser;
-        
-        // Display welcome message
-        std::cout << "Welcome, " << username << "!\n";
-        
-        return true;
-    }
-    catch (std::exception& e) {
-        std::cerr << "Error during login: " << e.what() << std::endl;
-        return false;
     }
 }
 
@@ -242,11 +218,12 @@ bool LibrarySystem::logout()
 
 bool LibrarySystem::exit()
 {
-    std::ofstream file1(fileUsers, std::ios::binary | std::ios::trunc);
+    std::fstream file1(fileUsers, std::ios::binary| std::ios::in| std::ios::out);
     if (!file1.is_open()) {
         throw std::ios::basic_ios::failure("Error with opening fileUsers!");
     }
-    std::ofstream file2(fileUnits, std::ios::binary | std::ios::trunc);
+
+    std::fstream file2(fileUnits, std::ios::binary | std::ios::in | std::ios::out);
     if (!file2.is_open()) {
         file1.close();
         throw std::ios::basic_ios::failure("Error with opening fileUnits!");
@@ -295,11 +272,21 @@ void LibrarySystem::findUnits(const std::string& type,
 
             // намерили сме го и го зареждаме
             file.seekg(infoUnits[i].pos, std::ios::beg);
-            Type hasToBeRead;
-            file.read(reinterpret_cast<char*>(&hasToBeRead), sizeof(hasToBeRead));
-            if (!file) {
-                throw std::ios_base::failure("Error with reading type!\n");
+           
+            // Read the user type
+            Type type;
+            std::streampos posBeforeType = file.tellg(); // запазваме позицията
+            file.read(reinterpret_cast<char*>(&type), sizeof(type));
+            if (!file.good()) {
+                throw std::ios_base::failure("Error with file!");
             }
+
+            // курсора обратно, за да може обектът сам да си прочете Type вътре
+            file.seekg(posBeforeType);
+            if (!file) {
+                throw std::ios_base::failure("Failed to seek back before reading unit!");
+            }
+
             LibraryUnit* current = LibraryFactory::createUnitFromStream(file, infoUnits[i].type);
             if (!current) {
                 std::cerr << "Couldnt found that unit or something happened!\n";
@@ -310,7 +297,7 @@ void LibrarySystem::findUnits(const std::string& type,
             // критерий за търсенето 
             if (option == "title")
             {
-                if (current->getTitle().find(value) != std::string::npos)
+                if (current->getTitle() == value)
                     filtered.push_back(current);
                 else {
                     delete current;
@@ -564,68 +551,79 @@ bool LibrarySystem::serialize(std::ostream& file1, std::ostream& file2) const
     }
     
     try {
+        file2.seekp(0, std::ios::beg);
         // Write units count
-        size_t size = units.size();
+        size_t size = units.size() + infoUnits.size();
         file2.write(reinterpret_cast<const char*>(&size), sizeof(size));
         if (!file2.good()) {
             throw std::ios_base::failure("Error writing units count");
         }
-        
+        file2.seekp(0, std::ios::end);
         // Write units
-        for (size_t i = 0; i < size; i++) {
-            // Record position before writing this unit
-            size_t pos = file2.tellp();
-            
-            /*
-            // Write unit ID and availability status for the metadata
-            unsigned int id = units[i]->getUniqueNumber();
-            file2.write(reinterpret_cast<const char*>(&id), sizeof(id));
-            if (!file2.good()) {
-                throw std::ios_base::failure("Error writing unit ID");
-            }
-            
-            bool isFree = units[i]->isAvailable();
-            file2.write(reinterpret_cast<const char*>(&isFree), sizeof(isFree));
-            if (!file2.good()) {
-                throw std::ios_base::failure("Error writing unit availability status");
-            }
-            */
-
-            // Serialize the entire unit data using the public interface
+        for (size_t i = 0; i < units.size(); i++) {
             units[i]->serialize(file2);
             if (!file2.good()) {
                 throw std::ios_base::failure("Error serializing unit data");
             }
-            
-            
         }
         
         // Write users count
-        size_t sizeOfUsers = users.size();
+        file1.seekp(0, std::ios::beg);
+
+        size_t sizeOfUsers = users.size() + infoUsers.size();
+
+        for (size_t i = 0; i < users.size(); i++)
+        {
+            for (size_t j = 0; j < infoUsers.size(); j++)
+            {
+                if (users[i]->getUsername() == infoUsers[j].username &&
+                    users[i]->getPassword() == infoUsers[j].password) {
+                    sizeOfUsers--;
+                }
+            }
+        }
+        
         file1.write(reinterpret_cast<const char*>(&sizeOfUsers), sizeof(sizeOfUsers));
         if (!file1.good()) {
             throw std::ios_base::failure("Error writing users count");
         }
         
         // Write users
-        for (size_t i = 0; i < sizeOfUsers; i++) {
+
+        file1.seekp(0, std::ios::end);
+
+        for (size_t i = 0; i < users.size(); i++) {
             // Record position before writing this user
             size_t pos = file1.tellp();
             
             // Serialize the rest of the user data
-            users[i]->serialize(file1);
-            if (!file1.good()) {
-                throw std::ios_base::failure("Error serializing user data");
-            }
             
-            // Note: We no longer modify infoUsers here since this is a const method
+            bool isAlreadeyIn = false;
+            
+            for (size_t j = 0; j < infoUsers.size(); j++)
+            {
+                if (users[i]->getUsername() == infoUsers[j].username &&
+                    users[i]->getPassword() == infoUsers[j].password) 
+                {
+                    isAlreadeyIn = true;
+                }
+            }
+
+            if (!isAlreadeyIn) {
+                users[i]->serialize(file1);
+                if (!file1.good()) {
+                    throw std::ios_base::failure("Error serializing user data");
+                }
+            }
+
+  
         }
         
         return true;
     }
     catch (std::exception& e) {
         std::cerr << "Error during serialization: " << e.what() << std::endl;
-        throw; // Re-throw the exception after logging it
+        throw;
     }
 }
 
@@ -648,6 +646,7 @@ bool LibrarySystem::deserialize(std::istream& file1, std::istream& file2)
         
         // Read units count
         size_t unitsCount;
+        unsigned maxId = 0;
         file2.read(reinterpret_cast<char*>(&unitsCount), sizeof(unitsCount));
         if (!file2.good()) {
             throw std::ios_base::failure("Error reading units count from file");
@@ -655,17 +654,27 @@ bool LibrarySystem::deserialize(std::istream& file1, std::istream& file2)
         
         // Read units metadata
         for (size_t i = 0; i < unitsCount; ++i) {
-            size_t pos = file2.tellg();  // Record current position
-            
-            // Read the type
+            size_t pos = file2.tellg();
             Type type;
+            std::streampos posBeforeType = file2.tellg(); // запазваме позицията
             file2.read(reinterpret_cast<char*>(&type), sizeof(type));
             if (!file2.good()) {
-                throw std::ios_base::failure("Error reading unit type");
+                throw std::ios_base::failure("Error with file!");
             }
-           
+
+            // курсора обратно, за да може обектът сам да си прочете Type вътре
+            file2.seekg(posBeforeType);
+            if (!file2) {
+                throw std::ios_base::failure("Failed to seek back before reading unit!");
+            }
+
             // Skip the data by creating and then deleting a temporary object
             LibraryUnit* temp = LibraryFactory::createUnitFromStream(file2, type);
+            if (temp->getId() > maxId) {
+
+                maxId = temp->getId();
+            }
+
             if (!temp) {
                 throw std::runtime_error("Failed to create unit object from stream");
             }
@@ -683,6 +692,7 @@ bool LibrarySystem::deserialize(std::istream& file1, std::istream& file2)
             }
             
         }
+        IDGenerator::setLastId(maxId);
 
         // Read users count - this was missing in the original code!
         size_t userCount;
@@ -694,11 +704,17 @@ bool LibrarySystem::deserialize(std::istream& file1, std::istream& file2)
         // Now read exactly 'userCount' users
         for (size_t i = 0; i < userCount; ++i) {
             size_t pos = file1.tellg();
-            
             TypeOfReader type;
+            std::streampos posBeforeType = file1.tellg(); // запазваме позицията
             file1.read(reinterpret_cast<char*>(&type), sizeof(type));
             if (!file1.good()) {
-                throw std::ios_base::failure("Error reading user type");
+                throw std::ios_base::failure("Error with file!");
+            }
+
+            // курсора обратно, за да може обектът сам да си прочете Type вътре
+            file1.seekg(posBeforeType);
+            if (!file1) {
+                throw std::ios_base::failure("Failed to seek back before reading unit!");
             }
                         
             // Create the person object from the stream
@@ -706,8 +722,6 @@ bool LibrarySystem::deserialize(std::istream& file1, std::istream& file2)
             if (!temp) {
                 throw std::runtime_error("Failed to create person object from stream");
             }
-
-            // Add the user's info to our metadata collection
             try
             {
                 infoUsers.push_back(MetaInfoAboutUsers{ temp->getUsername(), temp->getPassword(), pos,temp->getType() });
@@ -726,7 +740,7 @@ bool LibrarySystem::deserialize(std::istream& file1, std::istream& file2)
     }
     catch (std::exception& e) {
         std::cerr << "Error during deserialization: " << e.what() << std::endl;
-        throw; // Re-throw the exception after logging it
+        throw; 
     }
 }
 
@@ -755,17 +769,21 @@ void LibrarySystem::removeUnit(unsigned int id)
         std::cerr << "Only admins can do that operation!" << "\n";
         return;
     }
-
+    bool found = false;
     for (size_t i = 0; i < units.size(); i++)
     {
         if (units[i]->getId() == id) {
+            found = true;
             std::swap(units[i], units.back());
             delete units.back();
             units.pop_back();
-            // size се намалява и той и нямаме достъп до nullptr
+            // size се намалява и той 
+            std::cout << "Succesfully remove unit with id: " << id << "\n";
         }
     }
-
+    if (!found) {
+        std::cout << "No unit with that id: " << id << " has been loaded into the system!\n";
+    }
     // махаме ги от записите на читателите
     for (size_t i = 0; i < users.size(); i++)
     {
@@ -784,22 +802,58 @@ void LibrarySystem::removeUnit(unsigned int id)
     }
 }
 
+// тук ще ги зареждаме в системата вече
 bool LibrarySystem::changeUnit(unsigned int id)
 {
     if (!currentPerson || currentPerson->getType() != TypeOfReader::ADMINISTRATOR) {
         std::cerr << "Only admins can do that operation!" << "\n";
         return false;
     }
+    
+    std::ifstream file(fileUnits, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "File coulndnt open!\n";
+        return false;
+    }
 
+    LibraryUnit* unit = nullptr;
+
+    for (size_t i = 0; i < infoUnits.size(); i++)
+    {
+        if (infoUnits[i].uniqueNumber == id) {
+            file.seekg(infoUnits[i].pos);
+            unit = LibraryFactory::createUnitFromStream(file, infoUnits[i].type);
+            if (!unit) {
+                std::cerr << "Error in changeUnit!\n";
+                file.close();
+                return false;
+            }
+
+            try
+            {
+                units.push_back(unit);
+                file.close();
+            }
+            catch (...)
+            {
+                delete unit;
+                file.close();
+                throw;
+            }
+        }
+    }
+    
     for (size_t i = 0; i < units.size(); i++)
     {
         if (units[i]->getId() == id) {
             
             try
             {
-                if (!units[i]->change()) {
+                bool res = units[i]->change();
+                if (!res) {
                     return false;
                 }
+                rewriteUnitById(unit->getId());
                 return true;
             }
             catch (...)
@@ -810,6 +864,36 @@ bool LibrarySystem::changeUnit(unsigned int id)
         }
     }
     std::cerr << "Not found!\n";
+    return false;
+}
+
+bool LibrarySystem::rewriteUnitById(int id) {
+    std::string path = "units.dat";
+    std::fstream file(path, std::ios::in | std::ios::out | std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file for update.\n";
+        return false;
+    }
+
+    for (const UniqueIDAndFilePositions& meta : infoUnits) {
+        if (meta.uniqueNumber == id) {
+            // Намери обекта в units
+            for (LibraryUnit* unit : units) {
+                if (unit->getId() == id) {
+                    file.seekp(meta.pos);  // отиваме точно където е
+                    unit->serialize(file);    // overwrite
+                    file.close();
+                    std::cout << "Successfully rewrote unit with ID: " << id << "\n";
+                    return true;
+                }
+            }
+            std::cerr << "Unit with ID found in meta but not in memory!\n";
+            file.close();
+            return false;
+        }
+    }
+
+    std::cerr << "No metadata found for ID: " << id << "\n";
     return false;
 }
 
@@ -832,95 +916,26 @@ void LibrarySystem::addUser(bool isAdmin)
     }
     
     // Add the user to the users vector
-    users.push_back(newItem);
-    
-
-    /*
-    // To add the user to the file, we need to rewrite the entire file
-    // because we need to update the users count at the beginning of the file
-    std::ofstream tempFile(fileUsers + ".temp", std::ios::binary);
-    if (!tempFile.is_open()) {
-        std::cerr << "Cannot open temporary file to save user data!" << "\n";
-        return;
-    }
-    
-    // Write the updated user count
-    size_t sizeOfUsers = users.size();
-    tempFile.write(reinterpret_cast<const char*>(&sizeOfUsers), sizeof(sizeOfUsers));
-    if (!tempFile.good()) {
-        tempFile.close();
-        std::cerr << "Error writing user count to file!" << "\n";
-        return;
-    }
-    
-    // Write all users including the new one
-    for (size_t i = 0; i < users.size(); i++) {
-        // Record position for metadata
-        size_t pos = tempFile.tellp();
-
-        // Serialize the user
-        users[i]->serialize(tempFile);
-        if (!tempFile.good()) {
-            tempFile.close();
-            std::cerr << "Error serializing user data to file!" << "\n";
+    for (size_t i = 0; i < infoUsers.size(); i++)
+    {
+        if (newItem->getUsername() == infoUsers[i].username) {
+            std::cerr << "We have user with that username!";
+            delete newItem;
             return;
         }
-        
-        // Update metadata for this user
-        // For existing users, update position
-        bool found = false;
-        for (size_t j = 0; j < infoUsers.size(); j++) {
-            if (infoUsers[j].username == users[i]->getUsername()) {
-                infoUsers[j].pos = pos;
-                found = true;
-                break;
-            }
-        }
-        
-        // For the new user, add metadata
-        if (!found && users[i] == newItem) {
-            infoUsers.push_back(MetaInfoAboutUsers{newItem->getUsername(), newItem->getPassword(), pos});
-        }
+    }
+
+    try
+    {
+        users.push_back(newItem);
+
+    }
+    catch (...)
+    {
+        delete newItem;
+        throw;
     }
     
-    // Close the temporary file before attempting to rename it
-    tempFile.close();
-    
-    // In Windows, std::rename will fail if the destination file exists
-    // First try to remove the existing file if it exists
-    if (std::remove(fileUsers.c_str()) != 0) {
-        // If remove failed but the file doesn't exist, that's fine
-        // Otherwise, only show an error if it's not a "file not found" error
-        if (errno != ENOENT) {
-            std::cerr << "Warning: Could not remove existing file. " 
-                      << "Error code: " << errno << "\n";
-        }
-    }
-    
-    // Now try to rename the temporary file
-    if (std::rename((fileUsers + ".temp").c_str(), fileUsers.c_str()) != 0) {
-        std::cerr << "Failed to update the users file! Error code: " << errno << "\n";
-        // In case of failure, try a different approach - copy the content manually
-        std::ifstream src(fileUsers + ".temp", std::ios::binary);
-        std::ofstream dst(fileUsers, std::ios::binary | std::ios::trunc);
-        
-        if (src && dst) {
-            dst << src.rdbuf();
-            if (dst.good()) {
-                std::cout << "Successfully added new user " << newItem->getUsername() 
-                          << " to the system using file copy!\n";
-                // Remove the temporary file
-                src.close();
-                dst.close();
-                std::remove((fileUsers + ".temp").c_str());
-                return;
-            }
-        }
-        
-        std::cerr << "Critical error: could not update user data.\n";
-        return;
-    }
-    */
     std::cout << "Successfully added new user " << newItem->getUsername() << " to the system!\n";
 }
 
@@ -938,15 +953,17 @@ void LibrarySystem::removeUser(const std::string& name)
             count++;
         }
     }
-
+    std::string input;
     for (size_t i = 0; i < users.size(); i++)
     {
+        std::string username = users[i]->getUsername();
         if (users[i]->getUsername() == name) {
             //  трябва да го махнем
             if (users[i]->getType() == TypeOfReader::ADMINISTRATOR && count == 1) {
                 std::cerr << "Cannot remove cause  this is the last Admin in our system!\n";
                 return;
             }
+
             // иначе можем да го махнем
             if (currentPerson->getUsername() == users[i]->getUsername() &&
                 currentPerson->getPassword() == users[i]->getPassword())
@@ -956,14 +973,40 @@ void LibrarySystem::removeUser(const std::string& name)
                     return;
                 };
 
-                // иначе е било успешно
-                std::cout << "Successfully removed user: " << name << "\n";
+            }
+
+            // иначе не е текущо логнатият
+
+            std::cout << "Do you want to remove his books? 'yes' or 'no'\n";
+            std::getline(std::cin, input);
+            if (input == "yes") {
+                std::vector<int> takenIds = users[i]->getTakenIds();
+                for (size_t j = 0; j <  units.size(); j++)
+                {
+                    for (size_t k = 0; k  < takenIds.size(); k ++)
+                    {
+                        // ако са били заредени, ще ги махне, но те може да не са
+                        if (units[j]->getId() == takenIds[k]) {
+                            std::swap(units[j], units.back());
+                            delete units.back();
+                            units.pop_back();
+                            std::cout << "Succesfully remove book with id: " << takenIds[k] << "\n";
+                            break;
+                        }
+                    }
+                }
+            }
+
+            else if (input != "no") {
+                std::cerr << "invalid answer!\n";
                 return;
             }
-            // иначе не е текущо логнатият
+
             std::swap(users[i], users.back());
             delete users.back();
             users.pop_back();
+            std::cout << "Successfully removed user: " << name << "\n";
+
             return;
         }
     }
@@ -1137,7 +1180,7 @@ bool LibrarySystem::returnUnit(unsigned int id)
     return true;
 }
 
-void LibrarySystem::print()
+void LibrarySystem::print()const
 {
     for (size_t i = 0; i < units.size(); i++)
     {
@@ -1155,7 +1198,7 @@ void LibrarySystem::booksAll(std::ostream& out)
         std::cerr << "We need atelast one active person!" << "\n";
         return;
     }
-
+    std::cout << infoUnits.size();
     std::ifstream file(fileUnits,std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Error with file while booksAll!\n";
@@ -1166,28 +1209,37 @@ void LibrarySystem::booksAll(std::ostream& out)
 
     for (size_t i = 0; i < infoUnits.size(); i++)
     {
+        LibraryUnit* unit = nullptr;
         if (infoUnits[i].type == Type::BOOK) {
             try
             {
                 file.seekg(infoUnits[i].pos, std::ios::beg);
                 
-                Type hasToBeRead;
-                file.read(reinterpret_cast<char*>(&hasToBeRead), sizeof(hasToBeRead));
-                if (!file) {
-                    file.close();
-                    throw std::runtime_error("Someting happened with file!");
+                Type type;
+                std::streampos posBeforeType = file.tellg(); // запазваме позицията
+                file.read(reinterpret_cast<char*>(&type), sizeof(type));
+                if (!file.good()) {
+                    throw std::ios_base::failure("Error with file!");
                 }
 
-                LibraryUnit* unit = LibraryFactory::createUnitFromStream(file, hasToBeRead);
+                // курсора обратно, за да може обектът сам да си прочете Type вътре
+                file.seekg(posBeforeType);
+                if (!file) {
+                    throw std::ios_base::failure("Failed to seek back before reading unit!");
+                }
+
+                LibraryUnit* unit = LibraryFactory::createUnitFromStream(file, type);
                 if (!unit) {
                     std::cerr << "Creating unit error!\n";
                     file.close();
                 }
                 
                 unit->printBase();
+                delete unit;
             }
             catch (...)
             {
+                delete unit;
                 file.close();
                 throw;
             } 
@@ -1212,28 +1264,38 @@ void LibrarySystem::periodicalsAll(std::ostream& out)
     //търсим в meta данните, ако е там -> зареждаме книгата
     for (size_t i = 0; i < infoUnits.size(); i++)
     {
+        LibraryUnit* unit = nullptr;
         if (infoUnits[i].type == Type::PERIODICALS) {
             try
             {
                 file.seekg(infoUnits[i].pos, std::ios::beg);
-
-                Type hasToBeRead;
-                file.read(reinterpret_cast<char*>(&hasToBeRead), sizeof(hasToBeRead));
-                if (!file) {
-                    file.close();
-                    throw std::runtime_error("Someting happened with file!");
+                Type type;
+                std::streampos posBeforeType = file.tellg(); // запазваме позицията
+                file.read(reinterpret_cast<char*>(&type), sizeof(type));
+                if (!file.good()) {
+                    throw std::ios_base::failure("Error with file!");
                 }
 
-                LibraryUnit* unit = LibraryFactory::createUnitFromStream(file, hasToBeRead);
+                // курсора обратно, за да може обектът сам да си прочете Type вътре
+                file.seekg(posBeforeType);
+                if (!file) {
+                    throw std::ios_base::failure("Failed to seek back before reading unit!");
+                }
+
+
+
+                unit = LibraryFactory::createUnitFromStream(file, type);
                 if (!unit) {
                     std::cerr << "Creating unit error!\n";
                     file.close();
                 }
              
                 unit->printBase();
+                delete unit;
             }
             catch (...)
             {
+                delete unit;
                 file.close();
                 throw;
             }
@@ -1257,29 +1319,38 @@ void LibrarySystem::seriesAll(std::ostream& out)
     //търсим в meta данните, ако е там -> зареждаме книгата
     for (size_t i = 0; i < infoUnits.size(); i++)
     {
+        LibraryUnit* unit = nullptr;
         if (infoUnits[i].type == Type::SERIES) {
             try
             {
                 file.seekg(infoUnits[i].pos, std::ios::beg);
 
-                Type hasToBeRead;
-                file.read(reinterpret_cast<char*>(&hasToBeRead), sizeof(hasToBeRead));
-                if (!file) {
-                    file.close();
-                    throw std::runtime_error("Someting happened with file!");
+                Type type;
+                std::streampos posBeforeType = file.tellg(); // запазваме позицията
+                file.read(reinterpret_cast<char*>(&type), sizeof(type));
+                if (!file.good()) {
+                    throw std::ios_base::failure("Error with file!");
                 }
 
-                LibraryUnit* unit = LibraryFactory::createUnitFromStream(file, hasToBeRead);
+                // курсора обратно, за да може обектът сам да си прочете Type вътре
+                file.seekg(posBeforeType);
+                if (!file) {
+                    throw std::ios_base::failure("Failed to seek back before reading unit!");
+                }
+
+                 unit = LibraryFactory::createUnitFromStream(file, type);
                 if (!unit) {
                     std::cerr << "Creating unit error!\n";
                     file.close();
                 }
 
                 unit->printBase();
+                delete unit;
 
             }
             catch (...)
             {
+                delete unit;
                 file.close();
                 throw;
             }
@@ -1305,27 +1376,38 @@ void LibrarySystem::all(std::ostream& out)
     //търсим в meta данните, ако е там -> зареждаме книгата
     for (size_t i = 0; i < infoUnits.size(); i++)
     {
+        LibraryUnit* unit = nullptr;
             try
             {
                 file.seekg(infoUnits[i].pos, std::ios::beg);
 
-                Type hasToBeRead;
-                file.read(reinterpret_cast<char*>(&hasToBeRead), sizeof(hasToBeRead));
-                if (!file) {
-                    file.close();
-                    throw std::runtime_error("Someting happened with file!");
+
+                Type type;
+                std::streampos posBeforeType = file.tellg(); // запазваме позицията
+                file.read(reinterpret_cast<char*>(&type), sizeof(type));
+                if (!file.good()) {
+                    throw std::ios_base::failure("Error with file!");
                 }
 
-                LibraryUnit* unit = LibraryFactory::createUnitFromStream(file, hasToBeRead);
+                // курсора обратно, за да може обектът сам да си прочете Type вътре
+                file.seekg(posBeforeType);
+                if (!file) {
+                    throw std::ios_base::failure("Failed to seek back before reading unit!");
+                }
+
+
+                unit = LibraryFactory::createUnitFromStream(file, type);
                 if (!unit) {
                     std::cerr << "Creating unit error!\n";
                     file.close();
                 }
 
                 unit->printBase();
+                delete unit;
             }
             catch (...)
             {
+                delete unit;
                 file.close();
                 throw;
             }
@@ -1339,21 +1421,46 @@ void LibrarySystem::listInfo(const std::string& ISNN_OR_ISBN)
         return;
     }
     
-    // задължително трябва да е заредено, иначе няма да го намери
-    // можем да приемем, че е окей, но може да се помисли
+    std::ifstream file(fileUnits, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Error with seraching information in listInfo()!\n";
+        return;
+    }
 
-    // полиморфично поведение
-    for (size_t i = 0; i < units.size(); i++)
+    for (size_t i = 0; i < infoUnits.size(); i++)
     {
-        std::vector<std::string> ident = units[i]->getIdentifiers(); // не копира тежки обекти, те са най -много с два елемента 
-        for (size_t j = 0; j  < ident.size(); j ++)
+        file.seekg(infoUnits[i].pos);
+        LibraryUnit* current = LibraryFactory::createUnitFromStream(file, infoUnits[i].type);
+        if (current == nullptr)
         {
-            if (ident[i] == ISNN_OR_ISBN) {
-                units[i]->display(); // по-подробна информация
+            std::cerr << "Error with creating unit in listInfo()!\n";
+            return;
+        }
+
+        if (current->getType() == SERIES) {
+            Series* itsASerie = dynamic_cast<Series*>(current);
+            if (itsASerie!=nullptr && (itsASerie->getISBN() == ISNN_OR_ISBN || itsASerie->getISSN() == ISNN_OR_ISBN)) {
+                itsASerie->display();
+                delete current;
                 return;
             }
         }
+        
+        if (current->getISSNorISBN() == ISNN_OR_ISBN) {
+            try
+            {
+                current->display();
+                delete current;
+                return;
+            }
+            catch (...)
+            {
+                delete current;
+                throw;
+            }
+        }
     }
+
     std::cerr << "Item was not found!" << "\n";
     return;
 }

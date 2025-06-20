@@ -6,8 +6,8 @@ class Administrator : public LibraryPerson
 public:
 	// аналогично правим голяма 6-тица
 	// за фабпиката
-	Administrator(std::istream& is) : LibraryPerson(is) {
-		deserializeAdministratorUnit(is);
+	Administrator(std::istream& is) {
+		deserialize(is);
 	}
 	Administrator(const std::string& user, const std::string& pass,
 		int day1, int month1, int year1,
@@ -42,6 +42,7 @@ public:
 	
 	// статичен метод за интерактивен режим за фабриката
 	static Administrator* createInteractively();
+	virtual std::vector<int> getTakenIds()const override;
 protected:
 	Administrator();
 protected:

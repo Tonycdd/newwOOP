@@ -1,8 +1,173 @@
-#include <iostream>
+﻿#include <iostream>
+#include <fstream>
+#include <cassert>
 #include <string>
 #include <sstream>
 #include <vector>
 #include "LibrarySystem.h"
+
+/*
+void testLibraryUnitSerialization() {
+    // 1. Създай примерен Book обект
+    std::vector<std::string> keyWords;
+    keyWords.push_back("allen");
+    keyWords.push_back("ballen");
+    std::string title("The Hobbit");
+    std::string description("Fantasy novel by J.R.R. Tolkien");
+    std::string publishers("Allen & Unwin");
+    std::string author("Allen");
+    std::string ISBN("ISBN123");
+
+
+    Book original(title, publishers, description,21, 9, 1937,
+        Rate::Excellent, Genre::Fantasy, author, ISBN,keyWords);
+
+    // 2. Сериализирай обекта
+    std::ofstream ofs("book_test.bin", std::ios::binary);
+    assert(ofs.is_open());
+    original.serialize(ofs);
+    ofs.close();
+
+    // 3. Десериализирай в нов обект
+    Book loaded;
+    std::ifstream ifs("book_test.bin", std::ios::binary);
+    assert(ifs.is_open());
+    loaded.deserialize(ifs);
+    ifs.close();
+
+    // 4. Сравни стойностите
+    assert(original.getTitle() == loaded.getTitle());
+    assert(original.getPublishers() == loaded.getPublishers());
+    assert(original.getDescription() == loaded.getDescription());
+    assert(original.getGenre() == loaded.getGenre());
+    assert(original.getRate() == loaded.getRate());
+    assert(original.getDate().getDay() == loaded.getDate().getDay());
+    assert(original.getDate().getMonth() == loaded.getDate().getMonth());
+    assert(original.getDate().getYear() == loaded.getDate().getYear());
+    assert(original.getTotalCopies() == loaded.getTotalCopies());
+
+}
+*/
+
+/*
+void testLibraryPersonSerialization() {
+   
+    std::string username("Test");
+    std::string password("Test12+");
+    std::vector<std::string> keyWords;
+    keyWords.push_back("allen");
+    keyWords.push_back("ballen");
+    std::string title("The Hobbit");
+    std::string description("Fantasy novel by J.R.R. Tolkien");
+    std::string publishers("Allen & Unwin");
+    std::string author("Allen");
+    std::string ISBN("ISBN123");
+    std::string ISSN("ISSN1111");
+    LibraryUnit* original = new Book(title, publishers, description, 21, 9, 1937,
+        Rate::Excellent, Genre::Fantasy, author, ISBN, keyWords);
+
+    std::vector<Article>  articles;
+    std::vector<std::string> keys;
+    std::string artTitle("ArticleTitle");
+    std::string articleAuthor("ArticleAuthor");
+
+
+    keys.push_back("Article");
+    keys.push_back("Barrara");
+    
+    Article first(articleAuthor,artTitle,keys);
+    articles.push_back(first);
+    
+
+    LibraryUnit* original2 = new Periodicals(title, publishers, description,
+        Genre::Fantasy, Rate::Poor, 2, 2002, 12, ISSN,articles);
+ 
+    LibraryUnit* original3 = new Series(title,publishers,description,1,1,2006, Rate::Good,Genre::News, author, 16,
+        ISBN, keyWords, ISSN,articles);
+    std::vector<LibraryUnit*> vector;
+    std::vector<LoanInfo> history;
+    Date today = Date();
+    Date returnDate = today;
+    returnDate.addDays(14);
+    history.push_back(LoanInfo(original, today, returnDate));
+    history.push_back(LoanInfo(original2, today, returnDate));
+    history.push_back(LoanInfo(original3, today, returnDate));
+
+    vector.push_back(original);
+    vector.push_back(original2);
+    vector.push_back(original3);
+
+    Reader reader(username, password, 1, 1, 2002, 1, 1, 2002, vector,history);
+
+    // 2. Сериализирай обекта
+    std::ofstream ofs("reader_test.bin", std::ios::binary);
+    assert(ofs.is_open());
+    reader.serialize(ofs);
+    ofs.close();
+
+    // 3. Десериализирай в нов обект
+    Reader loaded;
+    std::ifstream ifs("reader_test.bin", std::ios::binary);
+    assert(ifs.is_open());
+    loaded.deserialize(ifs);
+    ifs.close();
+
+    assert(reader.getUsername() == loaded.getUsername());
+    assert(reader.getRegisterDate().getDay() == loaded.getRegisterDate().getDay());
+    assert(reader.getRegisterDate().getMonth() == loaded.getRegisterDate().getMonth());
+    assert(reader.getRegisterDate().getYear() == loaded.getRegisterDate().getYear());
+    assert(reader.getLastLoginDate().getDay() == loaded.getLastLoginDate().getDay());
+    assert(reader.getLastLoginDate().getMonth() == loaded.getLastLoginDate().getMonth());
+    assert(reader.getLastLoginDate().getYear() == loaded.getLastLoginDate().getYear());
+    assert(reader.getHistory().size() == loaded.getHistory().size());
+    assert(reader.getUnits().size() == loaded.getUnits().size());
+}
+*/
+
+/*
+void testAdministratorSerialization() {
+    std::string username("AdminHere");
+    std::string password("Admin12+");
+    std::string email("adminstrator@abv.bg");
+    Administrator admin(username, password, Date(), Date(), email);
+
+    // 2. Сериализирай обекта
+    std::ofstream ofs("admin_test.bin", std::ios::binary);
+    assert(ofs.is_open());
+    admin.serialize(ofs);
+    ofs.close();
+
+    // 3. Десериализирай в нов обект
+    Administrator loaded;
+    std::ifstream ifs("admin_test.bin", std::ios::binary);
+    assert(ifs.is_open());
+    loaded.deserialize(ifs);
+    ifs.close();
+
+    assert(admin.getEmail() == loaded.getEmail());
+    assert(admin.getUsername() == loaded.getUsername());
+    assert(admin.getLastLoginDate().getDay() == loaded.getLastLoginDate().getDay());
+    assert(admin.getLastLoginDate().getMonth() == loaded.getLastLoginDate().getMonth());
+    assert(admin.getLastLoginDate().getYear() == loaded.getLastLoginDate().getYear());
+    assert(admin.getRegisterDate().getDay() == loaded.getRegisterDate().getDay());
+    assert(admin.getRegisterDate().getMonth() == loaded.getRegisterDate().getMonth());
+    assert(admin.getRegisterDate().getYear() == loaded.getRegisterDate().getYear());
+
+}
+*/
+
+/*
+int main() {
+    // минава -> с лека корекция в позволяване на един конструктур в привейт частта
+    //testLibraryUnitSerialization();
+    // минава -> с лека корекция в позволяване на един конструктур в привейт частта
+    // този тества и periodicals,books,series и reader,article,history...
+    //testLibraryPersonSerialization();
+    // също минава -> с лека корекция в позволяване на един конструктур в привейт частта
+    //testAdministratorSerialization();
+}
+*/
+
 
 void printHelpMessage() {
 	std::cout << "(add unit) - only admin!\n";
@@ -212,6 +377,8 @@ int main() {
 
     try {
         IDGenerator::loadLastIdFromFile("last_id.dat");
+        std::cout << IDGenerator::getLastId();
+
         LibrarySystem system("users.dat", "units.dat");
 
         bool continueRunning = true;

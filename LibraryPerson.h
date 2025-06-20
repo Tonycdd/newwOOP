@@ -56,6 +56,8 @@ public:
 	virtual void borrow(LibraryUnit* unit) = 0;
 	virtual bool returnUnit(int id) = 0;
 
+	virtual std::vector<int> getTakenIds()const = 0;
+
 protected:
 	LibraryPerson();
 protected:
@@ -71,7 +73,6 @@ protected:
 	inline const std::string& getPassword()const { return password; };
 
 	friend class LibrarySystem; // трябва ни на едно място за серилизацията в системата
-
 protected:
 	std::string username; // потребителско име
 	std::string password; // парола, ще искаме да има някакви изисквания за сигурност 

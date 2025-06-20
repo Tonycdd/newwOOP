@@ -151,11 +151,12 @@ void Article::deserialize(std::istream& is)
 
 	for (size_t i = 0; i < keyWordsSize ; i++)
 	{
-		is.read(reinterpret_cast<char*>(&size), size);
+		is.read(reinterpret_cast<char*>(&size), sizeof(size));
 		if (is.fail()) {
 			throw std::ios_base::failure("Error reading current keyWords size!");
 		}
-		std::string keyWord(size, '\0');
+		std::string keyWord;
+		keyWord.resize(size);
 		is.read(&keyWord[0], size);
 		if (is.fail()) {
 			throw std::ios_base::failure("Error reading current keyWord!");

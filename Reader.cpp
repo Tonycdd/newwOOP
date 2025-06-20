@@ -5,10 +5,12 @@ Reader::Reader(const std::string& name,
     const std::string& pass,
     int day1, int month1, int year1,
     int day2, int month2, int year2,
-    const std::vector<LibraryUnit*>& v)
+    const std::vector<LibraryUnit*>& v,
+    const std::vector<LoanInfo>& history)
     :LibraryPerson(name, pass, day1, month1, year1, day2, month2, year2)
 {
     units = v;
+    this->history = history;
 }
 
 Reader::Reader(const Reader& other)
@@ -32,6 +34,7 @@ Reader::Reader(Reader&& other) noexcept
     :LibraryPerson(std::move(other)), units(std::move(other.units))
 {
    // няма какво повече да се прави тук
+    std::swap(history, other.history);
 }
 
 Reader& Reader::operator=(Reader&& other) noexcept
@@ -39,7 +42,7 @@ Reader& Reader::operator=(Reader&& other) noexcept
     if (this != &other) {
         LibraryPerson::operator=(std::move(other));
         units = std::move(other.units);
-
+        std::swap(history, other.history);
     }
     return *this;
 }
@@ -80,6 +83,17 @@ void Reader::addNewUnit(LibraryUnit* unit)
         }
     }
     units.push_back(unit);
+
+    // Добавяне на нов запис в историята с настоящата дата и връщане 14 дни след това
+    time_t now = time(0);
+    tm localTime;
+    localtime_s(&localTime, &now);
+    Date borrowDate(localTime.tm_mday, localTime.tm_mon + 1, localTime.tm_year + 1900);
+
+    Date returnDate = borrowDate;
+    returnDate.addDays(14);
+
+    history.emplace_back(unit, borrowDate, returnDate, false);
 }
 
 void Reader::serialize(std::ostream& out) const
@@ -103,6 +117,11 @@ void Reader::serialize(std::ostream& out) const
 void Reader::deserialize(std::istream& is)
 {
     // аналогично искаме strong excpetion
+    TypeOfReader t;
+    is.read(reinterpret_cast<char*>(&t), sizeof(t));
+    if (!is) {
+        throw std::invalid_argument("Invalid type of user in reader::deserialize!");
+    }
 
     if (!is.good()) {
         throw std::invalid_argument("Invalid stream before reading in Reader!");
@@ -211,16 +230,27 @@ Reader* Reader::createInteractively()
         return nullptr;
     }
 
-    std::cout << "Enter last borrow date (day month year): ";
+    std::cout << "Enter last login date (day month year): ";
     if (!(std::cin >> d2 >> m2 >> y2)) {
         std::cin.clear();
         std::cin.ignore(1000, '\n');
-        std::cerr << "Invalid borrow date input. Aborting.\n";
+        std::cerr << "Invalid login date input. Aborting.\n";
         return nullptr;
     }
     std::cin.ignore(); 
 
     return new Reader(name, password, d1, m1, y1, d2, m2, y2);
+}
+
+std::vector<int> Reader::getTakenIds() const
+{
+    std::vector<int> taken;
+    taken.reserve(units.size());
+    for (size_t i = 0; i < units.size(); i++)
+    {
+        taken.push_back(units[i]->getId());
+    }
+    return taken;
 }
 
 void Reader::borrow(LibraryUnit* unit) {
@@ -288,6 +318,7 @@ Reader::Reader() :LibraryPerson(), units(), history()
 
 void Reader::serializeReaderUnit(std::ostream& out) const
 {
+   
     // сериализираме само неговите части 
     
     // units -> които държи
@@ -346,12 +377,28 @@ void Reader::deserializeReaderUnit(std::istream& is)
 
         for (size_t i = 0; i < size; ++i) {
             Type type;
+            std::streampos posBeforeType = is.tellg(); // запазваме позицията
             is.read(reinterpret_cast<char*>(&type), sizeof(type));
             if (!is.good()) {
                 throw std::ios_base::failure("Error with file!");
             }
-            LibraryUnit* curr = LibraryFactory::createUnitFromStream(is,type); // може да хвърли
-            tempUnits.push_back(curr);
+
+            // курсора обратно, за да може обектът сам да си прочете Type вътре
+            is.seekg(posBeforeType);
+            if (!is) {
+                throw std::ios_base::failure("Failed to seek back before reading unit!");
+            }
+
+            LibraryUnit* curr = LibraryFactory::createUnitFromStream(is, type);
+            try
+            {
+                tempUnits.push_back(curr);
+            }
+            catch (...)
+            {
+                delete curr;
+                throw;
+            }
         }
 
 
